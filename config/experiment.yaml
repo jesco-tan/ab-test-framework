@@ -1,0 +1,25 @@
+experiment:
+  name: "saas_onboarding_wizard"
+  description: >
+    Guided 5-step setup wizard (treatment) vs blank free-explore dashboard (control).
+    Primary question: does the wizard improve week-1 activation?
+  baseline_activation_rate: 0.18   # 18% of users complete ≥3 key actions in week 1
+  mde: 0.20                        # detect ≥20% relative lift (18% → 21.6%)
+  alpha: 0.05
+  power: 0.80
+  traffic_split: 0.50
+  n_simulations: 5000
+
+sequential:
+  max_looks: 10
+  alpha_spending: "obrien_fleming"
+
+bayesian:
+  prior_alpha: 18.0   # informative prior: industry benchmark ~18% activation
+  prior_beta: 82.0    # Beta(18, 82) → mean = 18%, weakly informative
+  rope_width: 0.005   # 0.5 pp absolute ≈ practically equivalent
+  n_samples: 100000
+
+segments:
+  - company_size       # solo / small_team / large_team
+  - acquisition_channel  # organic / paid / referral

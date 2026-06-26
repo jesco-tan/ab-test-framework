@@ -1,0 +1,212 @@
+---
+title: "Rigorous A/B experimentation from scratch: power planning, sequential testing, Bayesian inference, and CUPED"
+publishedAt: "2026-06-24"
+summary: "Full experiment lifecycle on a SaaS onboarding wizard: exact power analysis, z-test and Welch t-test, O'Brien-Fleming sequential monitoring, Beta-Binomial Bayesian posterior with informative prior, multi-covariate CUPED, forest-plot segment analysis, and a three-metric (primary / secondary / guardrail) ship decision. All synthetic data, no external datasets."
+shortsummary: "Power planning, sequential O'Brien-Fleming, Bayesian Beta-Binomial, multi-covariate CUPED, and forest-plot HTE on a SaaS onboarding wizard. Three-metric scorecard drives the ship decision."
+images:
+  - "/images/projects/ab-test-framework/segment_forest_size.png"
+team:
+  - name: "Jesco Tan"
+    role: "Author"
+    avatar: "/images/avatar.jpg"
+    linkedIn: "https://www.linkedin.com/in/jesco-tan/"
+link: "https://github.com/jesco-tan/"
+---
+
+## Why this line of work
+
+I study **Engineering Systems and Design (ESD)** at the **Singapore University of Technology and Design (SUTD)**. The pillar trains you to be explicit about **actors**, **information**, **decisions**, and **feedback loops**. An A/B experiment is that framing made concrete: a product team holds a decision (ship the feature or not), a test generates a signal (did activation go up?), and the team pays real costs when they read that signal wrong. The statistical question cannot be separated from the decision question.
+
+Most experimentation write-ups show a single t-test and declare victory at p < 0.05. I wanted to build the full lifecycle instead: **how many users do you need before you collect a single row**, **is it safe to stop early without inflating error**, **what does the data say in both frequentist and Bayesian terms**, **where does the effect vary across segments**, and **when the primary metric is positive but a guardrail is breached, what do you actually ship?** That last question is the ESD question in thin disguise, a system has multiple feedback loops and the right action depends on reading all of them at once.
+
+The experiment scenario is a guided onboarding wizard tested on a B2B project-management SaaS product. Three metrics run in parallel throughout: week-1 **activation rate** (primary), **revenue per user** (secondary), and **day-1 drop-off rate** (guardrail). The tension between a large activation gain and a significant drop-off breach is what makes the decision non-trivial and worth writing up.
+
+---
+
+## 1. Experiment design and power planning
+
+**Why I built it.** The most common mistake in industry A/B testing is running an experiment without a power calculation and then calling a null result "no effect." If you enroll 200 users to detect a 20% lift on a 5% baseline, you have roughly 30% power, you will miss a real effect two times out of three. I wanted the framework to make that calculation unavoidable: you cannot generate data or run a test without first specifying baseline rate, MDE, α, and target power. The power curves then show exactly how sample size trades off against sensitivity.
+
+**What it is, in one breath.** `src/abtest/power.py` implements the exact two-proportion formula (not the pooled-SE approximation), an MDE curve across a log-scale N range, and a power-by-N curve for a fixed true lift. `config/experiment.yaml` holds all parameters: baseline activation 18%, MDE 20% relative, α = 0.05, power = 80%. Required sample size for this experiment: **1,923 per group** (3,846 total); we enrolled 2,115 per group with a 10% buffer.
+
+**Where the details live.** The notebook Section 1 runs `required_sample_size()`, prints a sensitivity table at five lift levels, and saves both curves to `outputs/power_curves.png`. `run_summary.json` records `n_required_per_group` and `n_users_total` so every downstream figure knows the experiment was appropriately powered before a single user was enrolled.
+
+<figure style={{ margin: "2rem 0", textAlign: "center" }}>
+  <Media
+    src="/images/projects/ab-test-framework/power_curves.png"
+    alt="Statistical power vs users per group (left) and minimum detectable effect vs users per group (right), both log-scaled x-axis"
+    sizes="(max-width: 960px) 100vw, 960px"
+    enlarge
+    radius="m"
+    style={{ width: "100%", margin: "0 auto" }}
+  />
+  <figcaption style={{ fontSize: "1rem", color: "#888", marginTop: "0.5rem", textAlign: "center" }}>
+    Left: power vs N for a 20% relative lift, the 80% target sits at 1,923 per group. Right: MDE vs N, doubling enrollment roughly halves the detectable effect. Both axes are log-scaled.
+  </figcaption>
+</figure>
+
+### Insights from the pipeline (power analysis)
+
+- **Sizing for the primary metric does not size for the secondary.** The experiment was built for the activation rate (binary, low noise). Revenue per user is zero-inflated and roughly 10× noisier; the same N gives only ~30% power on revenue. That is why the revenue result is treated as a directional signal, not a confirmed finding.
+- **A 10% buffer is cheap insurance.** Running 10% above the minimum required N pushes empirical power from 80% to ~83% and costs one to two extra days of traffic. The alternative, under-enrolling and rerunning, costs much more.
+- **The sensitivity table is the real deliverable.** Knowing that a 15% lift gives only 56% power (and a 25% lift gives 93%) changes how the team interprets a null result. It turns "we found nothing" into "we were powered to find X and didn't, which means the true effect is probably below X."
+
+---
+
+## 2. Primary metric and heterogeneous treatment effects
+
+**Why I built it.** An overall result that averages across all users often hides the most useful information. The onboarding wizard was designed around collaborative features, inviting teammates, completing shared tasks. That makes segment heterogeneity a first-class question, not an afterthought. I wanted the framework to make forest plots as easy to produce as the aggregate z-test, and to be honest about statistical power within each stratum.
+
+**What it is, in one breath.** `frequentist.py` adds `segment_analysis()` on top of the standard `two_proportion_ztest()`. It runs a separate hypothesis test per stratum and returns a DataFrame ready for `plot_segment_forest()` in `visualise.py`, a horizontal forest plot with point estimates, 95% CIs, p-values, and an overall-lift reference line. The experiment was analysed across two pre-specified dimensions: **company size** (solo, small_team, large_team) and **acquisition channel** (organic, paid, referral).
+
+**Overall primary result.** The wizard increased week-1 activation from **18.7% to 22.8%**: a **+22.0% relative lift** (+4.1 pp absolute), 95% CI [+1.67 pp, +6.55 pp], z = 3.300, p = 0.001. Highly significant and comfortably inside the powered range.
+
+<figure style={{ margin: "2rem 0", textAlign: "center" }}>
+  <Media
+    src="/images/projects/ab-test-framework/segment_forest_size.png"
+    alt="Forest plot of relative activation lift with 95% CI by company size: large_team +26.4%, small_team +24.9%, solo +7.2%"
+    sizes="(max-width: 960px) 100vw, 960px"
+    enlarge
+    radius="m"
+    style={{ width: "100%", margin: "0 auto" }}
+  />
+  <figcaption style={{ fontSize: "1rem", color: "#888", marginTop: "0.5rem", textAlign: "center" }}>
+    Forest plot by company size: large_team (+26.4%, p = 0.032) and small_team (+24.9%, p = 0.006) are both significant; solo (+7.2%, p = 0.61) is not. The green dotted line marks the overall +22.0% lift.
+  </figcaption>
+</figure>
+
+<figure style={{ margin: "2rem 0", textAlign: "center" }}>
+  <Media
+    src="/images/projects/ab-test-framework/segment_forest_channel.png"
+    alt="Forest plot of relative activation lift with 95% CI by acquisition channel: paid +34.3%, organic +21.4%, referral +20.0%"
+    sizes="(max-width: 960px) 100vw, 960px"
+    enlarge
+    radius="m"
+    style={{ width: "100%", margin: "0 auto" }}
+  />
+  <figcaption style={{ fontSize: "1rem", color: "#888", marginTop: "0.5rem", textAlign: "center" }}>
+    Forest plot by acquisition channel: paid (+34.3%, p = 0.009) and organic (+21.4%, p = 0.006) are significant; referral (+20.0%, p = 0.32) is not, plausibly a power issue at N = 606, not a genuine null.
+  </figcaption>
+</figure>
+
+### Insights from the pipeline (segment analysis)
+
+- **The solo null is not a power problem.** The solo segment has N = 1,649, large enough that a genuine 25% lift would be detected with >99% power. The +7.2% result with p = 0.61 is a real null, not noise. Wizard steps 2 ("invite a teammate") and 5 ("complete a shared task") are structurally irrelevant for single-seat accounts. The wizard is mis-specified for this population, not the population for which the wizard doesn't work.
+- **Paid-channel users benefit most (+34.3%).** Performance-marketing arrivals likely have less prior product familiarity than organic or referral users. Explicit structure helps exactly the users who need the most hand-holding.
+- **Pre-specification matters.** These subgroup analyses were pre-specified before data collection. Running them post-hoc on a significant overall result, without multiple-testing correction, would be p-hacking with extra steps.
+
+---
+
+## 3. Bayesian inference, sequential monitoring, and revenue
+
+**Why I built it.** Frequentist p-values answer the wrong question most product teams are asking. "There is a 0.1% chance of observing this result if there were no effect" is not the same as "there is a 99.9% chance the wizard works." The Bayesian posterior answers the latter directly. I also wanted to show what proper sequential monitoring looks like, most teams peek at running experiments with a standard t-test, which silently inflates Type I error. O'Brien-Fleming alpha-spending is the correct tool and it has a concrete, inspectable formula.
+
+**What it is, in one breath.** `bayesian.py` implements a **Beta-Binomial conjugate model** with a prior `Beta(18, 82)`, encoding the industry benchmark of ~18% SaaS onboarding activation in roughly 100 prior pseudo-observations. With 4,000+ real observations, the prior has negligible influence on the posterior but prevents over-confident conclusions from early looks. `sequential_test()` in `frequentist.py` applies the **O'Brien-Fleming alpha-spending function** at up to ten interim looks, preserving the overall α = 0.05 while allowing early stopping.
+
+<figure style={{ margin: "2rem 0", textAlign: "center" }}>
+  <Media
+    src="/images/projects/ab-test-framework/posterior_lift.png"
+    alt="Left: posterior Beta distributions for activation rate in control and treatment. Right: posterior distribution of relative lift showing near-zero mass below zero."
+    sizes="(max-width: 960px) 100vw, 960px"
+    enlarge
+    radius="m"
+    style={{ width: "100%", margin: "0 auto" }}
+  />
+  <figcaption style={{ fontSize: "1rem", color: "#888", marginTop: "0.5rem", textAlign: "center" }}>
+    Left: posterior Beta distributions for activation rate, treatment posterior is cleanly to the right of control. Right: posterior lift distribution, P(treatment > control) = 99.93%, expected lift +21.3%, 95% credible interval [+7.8%, +36.1%].
+  </figcaption>
+</figure>
+
+<figure style={{ margin: "2rem 0", textAlign: "center" }}>
+  <Media
+    src="/images/projects/ab-test-framework/sequential_test.png"
+    alt="Sequential test p-value path versus O'Brien-Fleming alpha boundary across four interim looks, boundary crossed at look 4"
+    sizes="(max-width: 960px) 100vw, 960px"
+    enlarge
+    radius="m"
+    style={{ width: "100%", margin: "0 auto" }}
+  />
+  <figcaption style={{ fontSize: "1rem", color: "#888", marginTop: "0.5rem", textAlign: "center" }}>
+    Sequential test: the O'Brien-Fleming boundary (red, dashed) is nearly unreachable at look 1 and relaxes toward α = 0.05 as information accumulates. The p-value path crosses at look 4, 2,540 users, 60% of planned N.
+  </figcaption>
+</figure>
+
+<figure style={{ margin: "2rem 0", textAlign: "center" }}>
+  <Media
+    src="/images/projects/ab-test-framework/revenue_distribution.png"
+    alt="Left: bar chart of zero vs positive revenue share by arm. Right: histogram of revenue among paying users only."
+    sizes="(max-width: 960px) 100vw, 960px"
+    enlarge
+    radius="m"
+    style={{ width: "100%", margin: "0 auto" }}
+  />
+  <figcaption style={{ fontSize: "1rem", color: "#888", marginTop: "0.5rem", textAlign: "center" }}>
+    Revenue is zero-inflated: 94.8% of control users and 94.0% of treatment users have $0. The positive revenue trend ($2.85 → $3.27, +14.8%) is driven by a higher fraction reaching the paid tier (5.2% → 6.0%), not higher ARPU among payers ($55.22 → $54.40, flat). p = 0.33, directional but not significant.
+  </figcaption>
+</figure>
+
+### Insights from the pipeline (Bayesian, sequential, revenue)
+
+- **P(treatment better) = 99.93% is not the same as p = 0.001.** The frequentist result tells you the data would be surprising if the null were true. The Bayesian result tells you the treatment is almost certainly better, given what you observed. Both agree here, but on a borderline result, the distinction matters enormously for a product decision.
+- **The ROPE adds a practical equivalence test.** Setting the region of practical equivalence at ±0.5 pp and computing P(lift > ROPE) = 99.7% answers the question product teams actually care about: is the difference meaningful, not just non-zero? The decision is `TREATMENT_WINS` under this criterion.
+- **The O'Brien-Fleming boundary is conservative by design.** It would take an extraordinarily low p-value to stop at look 1 (boundary ≈ 0.000000). That is intentional, early estimates are noisy and the cost of a false stop is high. By look 4 the boundary has relaxed to the nominal 0.024 level, matching the observed p-value exactly.
+- **Sequential monitoring saves 40% of experiment time** in this run, the boundary was crossed at 2,540 users (60% of planned N). In practice this compresses the experiment from, say, four weeks to two and a half, which frees traffic for the next experiment in the queue.
+- **Revenue needs a different power calculation.** The experiment was sized for a binary activation metric. Revenue is zero-inflated and roughly ten times noisier. The non-significant revenue result (p = 0.33) is not evidence that revenue is unaffected; it is evidence that this experiment was not powered to say either way on revenue.
+- **CUPED compresses the revenue CI.** Multi-covariate CUPED using `pre_exp_sessions` and `pre_exp_feature_depth` (implemented via OLS projection in `cuped.py`) reduces revenue variance by 4.3%, tightening the 95% CI from [−$0.42, +$1.26] to [−$0.33, +$1.31] and lowering the p-value from 0.33 to 0.24. The point estimate is unchanged, CUPED adjusts variance, not the mean. The modest reduction reflects the high zero-inflation: when 94% of values are $0, continuous covariates can only explain the small variance in the positive-revenue tail.
+
+---
+
+## 4. Decision framework: guardrail breach, calibration, and what actually ships
+
+**Why I built it.** The hardest part of A/B testing is not computing a p-value, it is synthesising three metrics, a guardrail breach, and a segment split into one actionable answer. I wanted the notebook to end with a structured decision, not a list of numbers. The scorecard pattern (primary, secondary, guardrail in a traffic-light table) forces you to be explicit about what would block a ship even when the headline metric looks good. The calibration check closes the loop: it verifies the test machinery itself is correctly specified before you trust any of the results.
+
+**What it is, in one breath.** Section 12 of the notebook assembles `plot_metric_scorecard()`, a colour-coded table where green means ship, yellow means watch, and red means concern, then synthesises evidence into a segment-specific recommendation. The calibration section (Section 11) runs 200 simulations under H₀ and 200 under H₁ (capped for notebook runtime from the config's 5,000) to verify empirical Type I error ≈ 5% and empirical power ≈ 80% before trusting any of the experiment results.
+
+<figure style={{ margin: "2rem 0", textAlign: "center" }}>
+  <Media
+    src="/images/projects/ab-test-framework/metric_scorecard.png"
+    alt="Traffic-light metric scorecard: activation rate significant green ship, revenue per user neutral yellow, day-1 drop-off significant red concern"
+    sizes="(max-width: 960px) 100vw, 960px"
+    enlarge
+    radius="m"
+    style={{ width: "100%", margin: "0 auto" }}
+  />
+  <figcaption style={{ fontSize: "1rem", color: "#888", marginTop: "0.5rem", textAlign: "center" }}>
+    Metric scorecard: activation is green (ship), revenue is neutral, day-1 drop-off is red, the guardrail is breached at +5.3 pp (p = 0.0003). A positive primary metric plus a significant guardrail breach is the classic case for a segment-conditional recommendation, not a binary ship/no-ship.
+  </figcaption>
+</figure>
+
+<figure style={{ margin: "2rem 0", textAlign: "center" }}>
+  <Media
+    src="/images/projects/ab-test-framework/pvalue_sim_distribution.png"
+    alt="Left: p-value distribution under H0 approximately uniform confirming 4% Type I error. Right: p-value distribution under H1 skewed left confirming 78.5% empirical power."
+    sizes="(max-width: 960px) 100vw, 960px"
+    enlarge
+    radius="m"
+    style={{ width: "100%", margin: "0 auto" }}
+  />
+  <figcaption style={{ fontSize: "1rem", color: "#888", marginTop: "0.5rem", textAlign: "center" }}>
+    Calibration check (200 simulations each): left is approximately Uniform[0,1] under H₀ with 4.0% Type I error (target 5.0%); right is strongly left-skewed under H₁ with 78.5% empirical power (target 80%). Both within sampling variability for 200 simulations.
+  </figcaption>
+</figure>
+
+### What the decision actually is
+
+The wizard increases activation by +22% overall, but the day-1 drop-off breach (+5.3 pp, p = 0.0003) means the gain comes at a cost that hits different segments differently.
+
+**`small_team` and `large_team`** (+24.9% and +26.4%, both significant): ship. The activation benefit is large, consistent, and the wizard's collaborative steps directly match these users' needs.
+
+**`solo`** (+7.2%, p = 0.61): hold. The wizard is structurally mismatched, steps 2 and 5 require a teammate that solo users do not have. The activation gain does not justify the day-1 friction cost for this segment. The right follow-up is a solo-specific checklist with steps that are actually relevant to single-seat use.
+
+### Insights from the pipeline (decision and calibration)
+
+- **A guardrail breach and a positive primary can coexist.** The wizard's friction causes more users to abandon on day 1 (guardrail breach) while the users who stay activate at a much higher rate (positive primary). These describe different user populations, they do not cancel each other out, but they do require a conditional answer.
+- **Calibration is a sanity check, not a formality.** Running p-value simulations under H₀ and H₁ costs 30–60 seconds and catches anti-conservative tests (spike near zero under H₀), conservative tests (spike near one under H₀), and under-powered experiments (flat distribution under H₁). Running experiments whose underlying test is mis-specified is worse than not running experiments at all.
+- **The scorecard is forcing function, not decoration.** Listing primary, secondary, and guardrail metrics in a single table forces a decision on all three before shipping. Without it, teams naturally anchor on the headline number and miss the guardrail.
+- **Post-launch monitoring is part of the decision.** Activation is a leading indicator, not an end-state. The recommendation includes explicit 30- and 90-day checks: week-4 retention, trial-to-paid conversion, day-7 churn, and feature adoption breadth. If day-7 churn exceeds baseline by more than 2 pp after shipping, the wizard step with the highest abandonment rate should be audited first.
+
+### Why this pattern shows up in industry and in the world
+
+Every large tech company runs hundreds of A/B experiments simultaneously. The hard problems are not the statistics, they are the infrastructure and the decision discipline. **Sequential monitoring** with proper alpha-spending matters because teams cannot resist peeking; organisations that do not enforce it systematically inflate their false-positive rate until the majority of their "significant" results are noise. **Segment analysis** with pre-specified subgroups matters because a feature that lifts one segment and hurts another should be shipped conditionally, not universally. **Guardrail metrics** matter because optimising a single metric in isolation (activation) while ignoring leading indicators of long-term retention (day-1 drop-off) produces wins on paper that become churn in the next quarter's cohort analysis.
+
+The same experimental infrastructure applies far outside product analytics. **Clinical trials** use sequential monitoring and subgroup analysis (albeit with stricter standards) to decide whether a treatment should be approved for the whole population or only specific cohorts. **Policy evaluation** uses the same two-sample framework with guardrail metrics, a job training programme that improves employment rates while worsening mental health outcomes has the same structure as a wizard that improves activation while worsening early churn. **Manufacturing quality control** uses sequential tests to decide when to stop a production run. In all of these settings, the discipline of **pre-specifying metrics, sizing correctly, monitoring honestly, and synthesising evidence across multiple signals** is what separates a rigorous analysis from a post-hoc rationalisation.

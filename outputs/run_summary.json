@@ -1,0 +1,67 @@
+{
+  "experiment_name": "saas_onboarding_wizard",
+  "n_users_total": 4230,
+  "n_required_per_group": 1923,
+  "true_lift_planted": 0.25,
+  "primary_metric": {
+    "metric": "activation_rate",
+    "control_mean": 0.186761,
+    "treatment_mean": 0.227896,
+    "relative_lift_pct": 22.03,
+    "p_value": 0.000968,
+    "significant": true
+  },
+  "secondary_metric": {
+    "metric": "revenue_per_user",
+    "control_mean": 2.8456,
+    "treatment_mean": 3.2665,
+    "relative_lift_pct": 14.79,
+    "p_value": 0.326835,
+    "significant": false
+  },
+  "guardrail_metric": {
+    "metric": "day1_dropoff",
+    "control_mean": 0.330496,
+    "treatment_mean": 0.383924,
+    "absolute_change_pp": 0.053428,
+    "p_value": 0.000288,
+    "breached": true
+  },
+  "bayesian": {
+    "prob_treatment_better": 0.9993,
+    "expected_lift_pct": 21.32,
+    "credible_interval_95": [
+      7.77,
+      36.06
+    ],
+    "rope_decision": "treatment_wins"
+  },
+  "cuped": {
+    "variance_reduction_pct": 4.34,
+    "effective_sample_gain_pct": 4.34
+  },
+  "segment_analysis": [
+    {
+      "segment": "large_team",
+      "rel_lift_pct": 26.4,
+      "p_value": 0.032412,
+      "significant": true
+    },
+    {
+      "segment": "small_team",
+      "rel_lift_pct": 24.9,
+      "p_value": 0.005819,
+      "significant": true
+    },
+    {
+      "segment": "solo",
+      "rel_lift_pct": 7.2,
+      "p_value": 0.613174,
+      "significant": false
+    }
+  ],
+  "calibration": {
+    "type_i_error": 0.04,
+    "empirical_power": 0.785
+  }
+}
