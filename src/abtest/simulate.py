@@ -66,7 +66,7 @@ def generate_experiment(
     Parameters
     ----------
     n_users : total enrolled users
-    baseline_activation_rate : overall population activation rate in control
+    baseline_activation_rate : weighted segment baseline before quality/clipping
     true_lift : desired overall relative lift in treatment (0.25 = +25% relative)
     traffic_split : fraction allocated to treatment
     seed : random seed for reproducibility
@@ -78,6 +78,15 @@ def generate_experiment(
         activated, revenue, day1_dropoff,
         pre_exp_sessions, pre_exp_feature_depth
     """
+    if not 0 < baseline_activation_rate < 1:
+        raise ValueError("baseline_activation_rate must be between 0 and 1")
+    if not 0 < traffic_split < 1 or n_users < 2:
+        raise ValueError("Use at least two records and a traffic_split between 0 and 1")
+    if not np.isfinite(true_lift) or true_lift < -1:
+        raise ValueError("true_lift must be finite and at least -1")
+    # 0.18 is the original profile's weighted baseline. Preserve the original
+    # default execution while making other requested baselines effective.
+    baseline_scale = baseline_activation_rate / 0.18
     rng = np.random.default_rng(seed)
     n_treatment = int(n_users * traffic_split)
     n_control   = n_users - n_treatment
@@ -94,7 +103,7 @@ def generate_experiment(
         sizes    = rng.choice(_SIZE_LABELS, size=n, p=_SIZE_PROBS)
         channels = rng.choice(channel_labels, size=n, p=channel_probs)
 
-        base_cvr  = np.array([_BASE_CVR[s]       for s in sizes])
+        base_cvr  = np.array([_BASE_CVR[s] * baseline_scale for s in sizes])
         seg_shape = np.array([_SEG_LIFT_SHAPE[s]  for s in sizes])
 
         # Latent user quality: drives within-segment covariate→outcome correlation

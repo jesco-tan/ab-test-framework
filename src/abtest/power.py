@@ -17,7 +17,7 @@ def required_sample_size(
     """
     Return the per-group sample size needed to detect a relative lift of `mde`.
 
-    Uses the exact two-proportion formula (not the approximation).
+    Uses a two-proportion normal approximation with null and alternative variances.
     """
     p1 = baseline_cvr
     p2 = baseline_cvr * (1 + mde)

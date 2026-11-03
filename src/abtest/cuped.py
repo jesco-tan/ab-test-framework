@@ -46,7 +46,7 @@ def cuped_variance_reduction(
         "variance_original":        round(var_original, 4),
         "variance_cuped":           round(var_adjusted, 4),
         "reduction_pct":            round(reduction_pct, 2),
-        "effective_sample_gain_pct": round(reduction_pct, 2),
+        "effective_sample_gain_pct": round((var_original / var_adjusted - 1) * 100, 2),
         "pearson_r":                round(float(r), 4),
         "theta":                    round(float(theta), 6),
     }
@@ -65,7 +65,7 @@ def apply_cuped_multi(
     where X_c = column-centred covariate matrix and θ = OLS(Y ~ X_c).
 
     This is identical to partialling out multiple pre-experiment covariates
-    and preserves the mean of Y (no intercept shift).
+    and preserves the pooled mean of Y, not the treatment/control contrast.
     """
     from numpy.linalg import lstsq
 
@@ -88,7 +88,8 @@ def cuped_variance_reduction_multi(
     Quantify variance reduction from multi-covariate CUPED.
 
     Returns reduction percentage, per-covariate Pearson r with the metric,
-    and the equivalent sample size gain (reduction_pct ≈ R² of the OLS regression).
+    and an equal-estimator sample-size approximation, Var(original)/Var(adjusted)-1.
+    Marginal squared correlations are not additive explained-variance components.
     """
     df_adj    = apply_cuped_multi(df, metric_col, covariate_cols)
     var_orig  = df[metric_col].var()
@@ -105,7 +106,7 @@ def cuped_variance_reduction_multi(
         "variance_original":        round(var_orig, 4),
         "variance_cuped":           round(var_cuped, 4),
         "reduction_pct":            round(reduction_pct, 2),
-        "effective_sample_gain_pct": round(reduction_pct, 2),
+        "effective_sample_gain_pct": round((var_orig / var_cuped - 1) * 100, 2),
         "pearson_r_per_covariate":  r_per_covariate,
         "r_squared_approx":         round(reduction_pct / 100, 4),
     }

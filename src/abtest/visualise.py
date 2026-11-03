@@ -43,6 +43,7 @@ def plot_power_curves(
     axes[1].set_xscale("log")
 
     plt.tight_layout()
+    fig.text(0.5, -0.02, "Synthetic scenario; no measured business outcome.", ha="center", fontsize=9)
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
@@ -71,6 +72,7 @@ def plot_posterior(
     axes[1].set_ylabel("Density")
 
     plt.tight_layout()
+    fig.text(0.5, -0.02, "Synthetic scenario; no measured business outcome.", ha="center", fontsize=9)
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
@@ -103,6 +105,7 @@ def plot_pvalue_distribution(
                  bbox=dict(boxstyle="round", facecolor="wheat"), fontsize=10)
 
     plt.tight_layout()
+    fig.text(0.5, -0.02, "Synthetic scenario; no measured business outcome.", ha="center", fontsize=9)
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
@@ -116,12 +119,13 @@ def plot_sequential_path(
     ax.plot(sequential_df["n_cumulative"], sequential_df["p_value"],
             marker="o", color=_BLUE, label="p-value")
     ax.plot(sequential_df["n_cumulative"], sequential_df["alpha_boundary"],
-            marker="s", linestyle="--", color="red", label="O'Brien-Fleming boundary")
-    ax.set_xlabel("Cumulative Users")
+            marker="s", linestyle="--", color="red", label="Illustrative threshold (not error-controlled)")
+    ax.set_xlabel("Cumulative generated records")
     ax.set_ylabel("p-value")
-    ax.set_title("Sequential Test, p-value vs Alpha Boundary")
+    ax.set_title("Retrospective prefix tests, not a stopping rule")
     ax.legend()
     plt.tight_layout()
+    fig.text(0.5, -0.02, "Synthetic scenario; no measured business outcome.", ha="center", fontsize=9)
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
@@ -186,6 +190,7 @@ def plot_segment_forest(
     ax.legend(handles=patches, loc="lower right", fontsize=9)
 
     plt.tight_layout()
+    fig.text(0.5, -0.02, "Synthetic scenario; no measured business outcome.", ha="center", fontsize=9)
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
@@ -231,6 +236,7 @@ def plot_revenue_distribution(
     axes[1].legend()
 
     plt.tight_layout()
+    fig.text(0.5, -0.02, "Synthetic scenario; no measured business outcome.", ha="center", fontsize=9)
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
@@ -306,6 +312,7 @@ def plot_metric_scorecard(
 
     ax.set_title("Metric Scorecard", fontsize=12, fontweight="bold", pad=10)
     plt.tight_layout()
+    fig.text(0.5, -0.02, "Synthetic scenario; no measured business outcome.", ha="center", fontsize=9)
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig

@@ -1,4 +1,6 @@
 {
+  "schema_version": 2,
+  "sequential_status": "retrospective illustrative threshold; alpha control not established",
   "experiment_name": "saas_onboarding_wizard",
   "n_users_total": 4230,
   "n_required_per_group": 1923,
@@ -23,7 +25,8 @@
     "metric": "day1_dropoff",
     "control_mean": 0.330496,
     "treatment_mean": 0.383924,
-    "absolute_change_pp": 0.053428,
+    "absolute_change": 0.053428,
+    "absolute_change_pp": 5.3428,
     "p_value": 0.000288,
     "breached": true
   },
@@ -38,7 +41,7 @@
   },
   "cuped": {
     "variance_reduction_pct": 4.34,
-    "effective_sample_gain_pct": 4.34
+    "effective_sample_gain_pct": 4.54
   },
   "segment_analysis": [
     {

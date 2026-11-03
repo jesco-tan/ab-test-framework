@@ -101,10 +101,14 @@ def sequential_test(
     spending_fn: str = "obrien_fleming",
 ) -> pd.DataFrame:
     """
-    Simulate a group sequential test with alpha-spending (O'Brien-Fleming or Pocock).
+    Illustrate retrospective interim looks, without validated error control.
 
     Splits already-collected data into `max_looks` equal batches to emulate interim
-    analyses. In a live experiment you would run this test as data accumulates.
+    analyses. Cumulative spending is compared directly with pointwise p-values,
+    which does not calibrate joint stopping boundaries. The Pocock-labelled
+    branch is linear spending, not a calibrated Pocock test. Do not use this
+    function for live stopping decisions. Floor-sized batches and rounded
+    p-values are retained for compatibility with the saved illustration.
     """
     n = min(len(control), len(treatment))
     # Reset index so .iloc slicing works correctly on both series
@@ -182,7 +186,7 @@ def segment_analysis(
             r = welch_ttest(ctrl, trt, alpha=alpha, metric_name=metric_col)
 
         p_c = r["control_mean"]
-        # Absolute CI → relative CI (delta method approximation)
+        # Rescaled absolute interval; omits uncertainty in the control denominator.
         rel_lo = r["ci_lower"] / p_c * 100 if p_c > 0 else 0.0
         rel_hi = r["ci_upper"] / p_c * 100 if p_c > 0 else 0.0
 
