@@ -1,67 +1,71 @@
 ---
-title: "A synthetic experimentation framework: planning, inference and decision limits"
+title: "Experimentation framework: from an activation lift to a decision"
+publishedAt: "2026-06-21"
+summary: "Built a synthetic experimentation framework with simulation-calibrated fixed-horizon tests and covariate-adjusted inference, explicit subgroup comparisons and guardrail release criteria."
+shortsummary: "Connected experiment planning and inference to a scorecard that weighs activation, revenue and drop-off in a synthetic SaaS scenario."
+images:
+  - "/images/projects/ab-test-framework/segment_forest_size.png"
+team:
+  - name: "Jesco Tan"
+    role: "Author"
+    avatar: "/images/avatar.jpg"
+    linkedIn: "https://www.linkedin.com/in/jesco-tan/"
+repositories:
+  - name: "ab-test-framework"
+    url: "https://github.com/jesco-tan/ab-test-framework"
+tags: ["A/B Testing", "Bayesian", "CUPED", "Python", "Experimentation"]
+category: ["data"]
+featured: true
 ---
 
-I built a Python framework to connect experiment planning, inference and decision-making. Its published run uses 4,230 synthetic user records for a hypothetical SaaS onboarding wizard. No real users were enrolled, no feature was shipped and no business improvement was measured.
+I built a framework that connects experiment planning to a decision rule, then tested the supported inference procedures through seeded simulation. The implementation now disables early stopping until a full stopping design is validated.
 
-The framework covers normal-approximation power planning, binary and continuous outcome tests, Beta-Binomial inference, exploratory segments, multi-covariate adjustment and a primary/secondary/guardrail scorecard. Auditing its outputs also exposed statistical and reporting limits that need to remain visible.
+## Reference design
 
-## Scenario and power planning
+Fixed horizon, two independent arms, two-sided alpha 0.05. Planning at baseline 18% and relative MDE 20% requires 1,923 observations per arm. The test uses pooled null variance; its Wald confidence interval uses unpooled alternative variance. Planning and plotted power now use matching null and alternative variances; MDE curves invert the sizing calculation. These normal approximations differ by design and are not exactly equivalent in finite samples.
 
-The generator plants a 25% population-relative activation effect, varying by company size, and a 4-percentage-point increase in day-1 drop-off. Revenue is zero-inflated and generated conditional on activation and a paid-conversion draw. Acquisition-channel labels do not affect the outcome equations.
+Early stopping is disabled: `sequential_test` raises an explicit error. There is no supported O'Brien-Fleming or Pocock procedure and no early-stopping recommendation. Expected total sample size is always 3,846 in the calibrated reference design.
 
-For an assumed 18% baseline and 20% relative minimum detectable effect, two-sided alpha 0.05 and target power 80%, the normal-approximation sizing formula gives 1,923 records per arm. The saved sample has 2,115 per arm, including a nominal 10% buffer. This is planning arithmetic for generated data, not actual enrolment.
+## Calibration
 
-![Approximate power and detectable-effect curves for the synthetic experiment planning assumptions](outputs/power_curves.png)
+Seed 20261103. 10,000 complete experiments per binary effect give about 0.0043 Monte Carlo half-width around a 5% error rate. Exact binomial 95% Monte Carlo intervals accompany rejection rates. Simulations use independent Bernoulli outcomes, rather than the richer demonstration generator.
 
-Synthetic scenario planning. Horizontal sample-size axes are logarithmic. The sizing calculation gives 1,923 records per arm; the related plotting functions use approximations. Detectable effect decreases approximately with the inverse square root of sample size, so doubling the sample does not halve the MDE.
+| Absolute effect | Rejection rate | Monte Carlo interval | Difference CI coverage |
+| --- | --- | --- | --- |
+| 0.000 | 0.0511 | [0.0469, 0.0556] | 0.9489 |
+| 0.018 | 0.3015 | [0.2925, 0.3106] | 0.9530 |
+| 0.036 | 0.7931 | [0.7850, 0.8010] | 0.9476 |
+| 0.054 | 0.9840 | [0.9813, 0.9864] | 0.9497 |
 
-The saved sensitivity table uses 1,923 per arm. The implemented approximate power calculation rises from about 80.1% at that N to 83.7% at 2,115 for the specified 20% effect. The generator scales the segment baseline profile to the requested baseline. The default profile has a weighted mean of 18%; individual clipping and latent quality mean a generated sample need not realise the requested rate exactly.
+The fixed-horizon null rejection rate and planned-MDE power pass the predefined simulation tolerances recorded in `inference_validation.json`. This validates these settings, not every baseline, small sample or stopping scheme.
 
-## Estimated effects in the saved sample
+## Covariate-adjusted inference
 
-Generated control records have 395 activations among 2,115 records, or 18.6761%. Treatment has 482, or 22.7896%. The estimated difference is +4.1135 percentage points, equivalent to +22.03% relative lift. The fixed-horizon two-proportion z-test gives p = 0.000968, with an approximate 95% difference interval of +1.67 to +6.55 percentage points.
+The supported estimator is the treatment coefficient in a regression on treatment and centered pre-experiment covariates, using HC3 robust variance and asymptotic normal intervals. Testing fitted adjusted residuals with a naive t-test is not the validated procedure. Existing CUPED variance summaries remain descriptive helpers.
 
-These estimates are distinct from the planted +25% relative effect. They demonstrate estimation under a known generator, not the effect of a real onboarding intervention.
+Eight scenarios combine null/effect 0.2, covariate mean shift 0/0.75 and normal/centered lognormal errors, with 300 observations per arm and 2,000 simulations each. Deliberate covariate shifts are a regression stress test, not randomized-balance evidence. Bias, interval coverage, rejection rate and standard errors are recorded separately. The model is additive and correctly specified; this does not validate arbitrary confounding, nonlinear effects or extreme tails.
 
-![Exploratory activation estimates and uncertainty by generated company-size label](outputs/segment_forest_size.png)
+| Covariate shift | Skewed errors | True effect | Bias | CI coverage | Adjusted mean SE |
+| --- | --- | --- | --- | --- | --- |
+| 0.0 | False | 0.0 | 0.0008 | 0.9470 | 0.0819 |
+| 0.0 | False | 0.2 | 0.0014 | 0.9485 | 0.0819 |
+| 0.0 | True | 0.0 | 0.0008 | 0.9510 | 0.1067 |
+| 0.0 | True | 0.2 | -0.0019 | 0.9425 | 0.1058 |
+| 0.75 | False | 0.0 | 0.0028 | 0.9490 | 0.0875 |
+| 0.75 | False | 0.2 | -0.0007 | 0.9600 | 0.0875 |
+| 0.75 | True | 0.0 | 0.0042 | 0.9475 | 0.1128 |
+| 0.75 | True | 0.2 | -0.0000 | 0.9605 | 0.1131 |
 
-Synthetic scenario. Estimated relative lifts are +26.4% for large_team, +24.9% for small_team and +7.2% for solo, with unadjusted p-values 0.0324, 0.0058 and 0.6132. Company-size differences are partly planted. A nonsignificant solo estimate does not establish no effect or equivalence.
+Each scenario passes the predefined coverage and bias tolerances. Monte Carlo intervals and raw estimator standard errors are in the JSON. Single-seed calibration is finite evidence, not proof of universal coverage.
 
-![Exploratory activation estimates by independently assigned acquisition-channel label](outputs/segment_forest_channel.png)
+## Subgroups and release criteria
 
-Synthetic scenario. The saved notebook gives paid +25.3% (p = 0.0297), organic +23.2% (p = 0.0119) and referral +9.8% (p = 0.5706). Channel labels do not affect generated outcomes. These comparisons are exploratory and have no multiplicity correction or formal interaction test.
+Per-segment p-values receive Holm correction within each segment family. Relative-lift intervals use a delta method with variance from both arm means; they remain approximate and unstable near a zero control mean. A zero denominator produces a missing interval rather than a spurious zero-width interval. Intervals are pointwise, not simultaneous after multiplicity adjustment.
 
-Prelisting segment dimensions does not remove multiple-testing concerns. The plotted relative intervals divide an absolute difference interval by the estimated control rate, without fully accounting for denominator uncertainty. They should not be treated as validated evidence for a segment rollout.
+Differences between segments are tested with a joint treatment-by-segment HC3 Wald test on the additive scale. The two demonstrated segment-family interaction tests receive Holm correction together. A significant within-segment effect does not establish an interaction.
 
-## Bayesian inference and revenue adjustment
+The illustrative scorecard requires a positive lower 95% primary-effect bound and a guardrail upper bound below a predeclared absolute harm margin of two percentage points. A nonsignificant harm test does not establish guardrail acceptability. The current generated sample fails the release criterion. The margin is a demonstration setting, not a real stakeholder-approved business tolerance.
 
-The Bayesian implementation uses an assumed Beta(18,82) prior for each arm, with mean 18% and concentration 100. The saved 100,000-draw calculation gives P(treatment activation greater than control) = 99.93%, expected relative lift +21.32%, and a 95% relative-lift credible interval of +7.77% to +36.06%. These are conditional on the prior and Beta-Binomial model.
+## Reproduce
 
-![Saved Bayesian activation-rate and relative-lift distributions under the assumed prior](outputs/posterior_lift.png)
-
-Synthetic scenario. Posterior distributions use the assumed Beta(18,82) prior. The separate ROPE rule uses an absolute difference of 0.5 percentage points as the practical threshold and returns treatment_wins in this generated sample. This is not a measured commercial benefit.
-
-Generated revenue averages $2.8456 versus $3.2665 per synthetic record, an estimated +14.79% relative difference with Welch p = 0.326835. The uncertainty does not establish either a revenue benefit or no revenue effect.
-
-Multi-covariate CUPED projects revenue onto two pre-experiment covariates. Saved pooled variance falls from 194.8082 to 186.3517, a 4.34% reduction. Under an equal-estimator variance approximation this corresponds to about 4.54% equivalent sample-size gain, not 4.34%.
-
-Centring preserves the pooled mean, not the difference between arm means. The saved rounded confidence intervals shift from [-$0.42, +$1.26] to [-$0.33, +$1.31], implying contrasts near $0.42 and $0.49. The adjusted result remains nonsignificant. Stronger inference needs an explicitly justified treatment-adjusted estimator and variance calculation.
-
-## Sequential visualisation and its limit
-
-The sequential function slices already generated rows into cumulative batches. It compares each pointwise p-value with an O'Brien-Fleming-shaped cumulative spending expression. That is not a validated group-sequential boundary calculation, so the implementation does not establish overall alpha control.
-
-![Retrospective synthetic prefix-test path crossing the implemented illustrative threshold at look seven](outputs/sequential_test.png)
-
-Synthetic retrospective illustration. The saved execution crosses at look 7, after 2,954 records, about 69.8% of the generated sample. The current threshold implementation is not validated for repeated-testing error control. This is not evidence of actual experiment-time savings.
-
-The saved calibration exercise runs 200 fixed-horizon tests under each generator setting, recording 8/200 null rejections and 157/200 rejections at the planned alternative. It does not exercise the stopping rule. Monte Carlo uncertainty and the distinction between fixed-horizon and sequential validation matter here.
-
-## The decision the framework can support
-
-Generated drop-off increases from 33.0496% to 38.3924%, a +5.3428-percentage-point difference, with p = 0.000288. The generator plants extra drop-off in every company-size group. It separately samples activation and drop-off, so these outputs do not demonstrate an observed funnel mechanism or establish that activation among survivors offsets abandonment.
-
-The scorecard makes the tension visible: primary activation favours treatment, revenue is uncertain and the guardrail worsens. It does not justify an approved rollout to teams. A hypothetical follow-up would define acceptable harm, assess segment-level guardrails and confirm selected segments under a separate plan.
-
-The project's value is the implemented workflow and inspectable saved artifacts. Improving it requires validated sequential boundaries, consistent planning formulas, explicit subgroup uncertainty, corrected CUPED reporting and versioned result exports. Those changes should precede stronger statistical or business claims.
+Python 3.14, isolated `.venv`, install pinned `requirements.txt`. Run `.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider`, then `.venv/Scripts/python.exe scripts/validate_inference.py` and `python scripts/generate_html_report.py`. The manifest records package versions, source hashes, seed, output hashes and tolerance. The notebook calls this same runner. Older plots in outputs are historical and are not current calibration evidence.

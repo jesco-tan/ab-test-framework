@@ -1,0 +1,211 @@
+{
+  "seed": 20261103,
+  "status": "passed",
+  "binary": [
+    {
+      "delta": 0.0,
+      "n_per_arm": 1923,
+      "simulations": 10000,
+      "rejection_rate": 0.0511,
+      "rejection_interval": [
+        0.04686539012190466,
+        0.055598391826375826
+      ],
+      "ci_coverage": 0.9489,
+      "expected_total_sample": 3846
+    },
+    {
+      "delta": 0.018,
+      "n_per_arm": 1923,
+      "simulations": 10000,
+      "rejection_rate": 0.3015,
+      "rejection_interval": [
+        0.2925144030134788,
+        0.3106013295123697
+      ],
+      "ci_coverage": 0.953,
+      "expected_total_sample": 3846
+    },
+    {
+      "delta": 0.036,
+      "n_per_arm": 1923,
+      "simulations": 10000,
+      "rejection_rate": 0.7931,
+      "rejection_interval": [
+        0.7850256946119829,
+        0.801003252526905
+      ],
+      "ci_coverage": 0.9476,
+      "expected_total_sample": 3846
+    },
+    {
+      "delta": 0.054,
+      "n_per_arm": 1923,
+      "simulations": 10000,
+      "rejection_rate": 0.984,
+      "rejection_interval": [
+        0.9813448747744917,
+        0.9863675290262143
+      ],
+      "ci_coverage": 0.9497,
+      "expected_total_sample": 3846
+    }
+  ],
+  "adjusted": [
+    {
+      "covariate_mean_shift": 0.0,
+      "skewed_noise": false,
+      "true_effect": 0.0,
+      "simulations": 2000,
+      "bias": 0.0008334681363364521,
+      "coverage": 0.947,
+      "coverage_interval": [
+        0.9362572070012273,
+        0.9564069564074236
+      ],
+      "rejection_rate": 0.053,
+      "rejection_interval": [
+        0.043593043592576375,
+        0.06374279299877267
+      ],
+      "mean_se": 0.08189697147240306,
+      "raw_mean_se": 0.14707545449075238
+    },
+    {
+      "covariate_mean_shift": 0.0,
+      "skewed_noise": false,
+      "true_effect": 0.2,
+      "simulations": 2000,
+      "bias": 0.0013966627993502734,
+      "coverage": 0.9485,
+      "coverage_interval": [
+        0.9378866139553728,
+        0.9577724878882076
+      ],
+      "rejection_rate": 0.6935,
+      "rejection_interval": [
+        0.6727714541198857,
+        0.7136597743414628
+      ],
+      "mean_se": 0.08185096962379959,
+      "raw_mean_se": 0.14711257730739558
+    },
+    {
+      "covariate_mean_shift": 0.0,
+      "skewed_noise": true,
+      "true_effect": 0.0,
+      "simulations": 2000,
+      "bias": 0.000758384093408784,
+      "coverage": 0.951,
+      "coverage_interval": [
+        0.9406073548753107,
+        0.9600432430750411
+      ],
+      "rejection_rate": 0.049,
+      "rejection_interval": [
+        0.03995675692495896,
+        0.05939264512468933
+      ],
+      "mean_se": 0.10666315117173414,
+      "raw_mean_se": 0.16236271554823103
+    },
+    {
+      "covariate_mean_shift": 0.0,
+      "skewed_noise": true,
+      "true_effect": 0.2,
+      "simulations": 2000,
+      "bias": -0.001884387932794468,
+      "coverage": 0.9425,
+      "coverage_interval": [
+        0.9313816645287246,
+        0.9522975226197493
+      ],
+      "rejection_rate": 0.4725,
+      "rejection_interval": [
+        0.4504240485790401,
+        0.49465668606007257
+      ],
+      "mean_se": 0.10583889153349134,
+      "raw_mean_se": 0.16175599698179388
+    },
+    {
+      "covariate_mean_shift": 0.75,
+      "skewed_noise": false,
+      "true_effect": 0.0,
+      "simulations": 2000,
+      "bias": 0.0027836488528052037,
+      "coverage": 0.949,
+      "coverage_interval": [
+        0.9384302465684916,
+        0.9582271615092796
+      ],
+      "rejection_rate": 0.051,
+      "rejection_interval": [
+        0.04177283849072042,
+        0.06156975343150838
+      ],
+      "mean_se": 0.0875181345823233,
+      "raw_mean_se": 0.1470147065798601
+    },
+    {
+      "covariate_mean_shift": 0.75,
+      "skewed_noise": false,
+      "true_effect": 0.2,
+      "simulations": 2000,
+      "bias": -0.0006929800760110683,
+      "coverage": 0.96,
+      "coverage_interval": [
+        0.9504616577525338,
+        0.9681574426889019
+      ],
+      "rejection_rate": 0.637,
+      "rejection_interval": [
+        0.6154868962913556,
+        0.6581106719520875
+      ],
+      "mean_se": 0.08753485795622463,
+      "raw_mean_se": 0.14703701393854096
+    },
+    {
+      "covariate_mean_shift": 0.75,
+      "skewed_noise": true,
+      "true_effect": 0.0,
+      "simulations": 2000,
+      "bias": 0.004228961894730994,
+      "coverage": 0.9475,
+      "coverage_interval": [
+        0.936800097516713,
+        0.9568623819153812
+      ],
+      "rejection_rate": 0.0525,
+      "rejection_interval": [
+        0.043137618084618856,
+        0.06319990248328705
+      ],
+      "mean_se": 0.11275852981324148,
+      "raw_mean_se": 0.16199318649941194
+    },
+    {
+      "covariate_mean_shift": 0.75,
+      "skewed_noise": true,
+      "true_effect": 0.2,
+      "simulations": 2000,
+      "bias": -8.190973851796013e-06,
+      "coverage": 0.9605,
+      "coverage_interval": [
+        0.9510122229893169,
+        0.9686050772106086
+      ],
+      "rejection_rate": 0.4365,
+      "rejection_interval": [
+        0.4146209886040752,
+        0.45856545325045556
+      ],
+      "mean_se": 0.11307050104962024,
+      "raw_mean_se": 0.16197301203798456
+    }
+  ],
+  "acceptance": "Null rejection .035..065; planned MDE power .77..83; adjusted coverage .925..975 and absolute bias below .03. Chosen before simulation.",
+  "sequential": "disabled, no stopping claims",
+  "scope": "Binary independent Bernoulli at baseline .18 and planned n; adjusted additive linear outcomes with normal or centered lognormal errors; no arbitrary heavy-tail or observational causal guarantee."
+}

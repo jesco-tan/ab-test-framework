@@ -1,0 +1,4 @@
+segment,n_control,n_treatment,control_rate,treatment_rate,rel_lift_pct,ci_lower_pct,ci_upper_pct,p_value,significant,p_adjusted
+large_team,330,316,0.303,0.3829,26.4,-0.9,53.6,0.032412,False,0.064824
+small_team,945,990,0.2159,0.2697,24.9,5.1,44.8,0.005819,True,0.017457
+solo,840,809,0.1083,0.1162,7.2,-21.9,36.4,0.613174,False,0.613174

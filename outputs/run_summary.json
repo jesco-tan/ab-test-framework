@@ -1,70 +1,75 @@
 {
-  "schema_version": 2,
-  "sequential_status": "retrospective illustrative threshold; alpha control not established",
-  "experiment_name": "saas_onboarding_wizard",
-  "n_users_total": 4230,
-  "n_required_per_group": 1923,
-  "true_lift_planted": 0.25,
-  "primary_metric": {
+  "primary": {
     "metric": "activation_rate",
     "control_mean": 0.186761,
     "treatment_mean": 0.227896,
+    "absolute_lift": 0.041135,
     "relative_lift_pct": 22.03,
     "p_value": 0.000968,
-    "significant": true
+    "ci_lower": 0.016733,
+    "ci_upper": 0.065537,
+    "significant": true,
+    "method": "two_proportion_z",
+    "n_control": 2115,
+    "n_treatment": 2115,
+    "z_stat": 3.2997
   },
-  "secondary_metric": {
-    "metric": "revenue_per_user",
-    "control_mean": 2.8456,
-    "treatment_mean": 3.2665,
-    "relative_lift_pct": 14.79,
-    "p_value": 0.326835,
-    "significant": false
-  },
-  "guardrail_metric": {
-    "metric": "day1_dropoff",
+  "guardrail": {
+    "metric": "activation_rate",
     "control_mean": 0.330496,
     "treatment_mean": 0.383924,
-    "absolute_change": 0.053428,
-    "absolute_change_pp": 5.3428,
+    "absolute_lift": 0.053428,
+    "relative_lift_pct": 16.17,
     "p_value": 0.000288,
-    "breached": true
+    "ci_lower": 0.024592,
+    "ci_upper": 0.082263,
+    "significant": true,
+    "method": "two_proportion_z",
+    "n_control": 2115,
+    "n_treatment": 2115,
+    "z_stat": 3.6259
   },
-  "bayesian": {
-    "prob_treatment_better": 0.9993,
-    "expected_lift_pct": 21.32,
-    "credible_interval_95": [
-      7.77,
-      36.06
-    ],
-    "rope_decision": "treatment_wins"
+  "revenue": {
+    "metric": "revenue",
+    "control_mean": 2.8456,
+    "treatment_mean": 3.2665,
+    "absolute_lift": 0.4209,
+    "relative_lift_pct": 14.79,
+    "p_value": 0.326835,
+    "ci_lower": -0.4206,
+    "ci_upper": 1.2624,
+    "significant": false,
+    "method": "welch_t",
+    "n_control": 2115,
+    "n_treatment": 2115,
+    "t_stat": -0.9806
   },
-  "cuped": {
-    "variance_reduction_pct": 4.34,
-    "effective_sample_gain_pct": 4.54
+  "release": {
+    "primary_improved": true,
+    "guardrail_acceptable": false,
+    "harm_margin": 0.02,
+    "release": false
   },
-  "segment_analysis": [
-    {
-      "segment": "large_team",
-      "rel_lift_pct": 26.4,
-      "p_value": 0.032412,
-      "significant": true
+  "adjusted_revenue": {
+    "estimate": 0.4897851872182903,
+    "se": 0.4209635911564946,
+    "ci_lower": -0.33528829025108314,
+    "ci_upper": 1.3148586646876637,
+    "p_value": 0.24463243052467776,
+    "method": "OLS treatment coefficient with HC3 variance"
+  },
+  "interactions": {
+    "company_size": {
+      "p_value": 0.07086159854144375,
+      "scale": "additive",
+      "method": "HC3 joint interaction Wald",
+      "p_adjusted": 0.1417231970828875
     },
-    {
-      "segment": "small_team",
-      "rel_lift_pct": 24.9,
-      "p_value": 0.005819,
-      "significant": true
-    },
-    {
-      "segment": "solo",
-      "rel_lift_pct": 7.2,
-      "p_value": 0.613174,
-      "significant": false
+    "acquisition_channel": {
+      "p_value": 0.7387606643727681,
+      "scale": "additive",
+      "method": "HC3 joint interaction Wald",
+      "p_adjusted": 0.7387606643727681
     }
-  ],
-  "calibration": {
-    "type_i_error": 0.04,
-    "empirical_power": 0.785
   }
 }

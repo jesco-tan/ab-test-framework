@@ -110,3 +110,20 @@ def cuped_variance_reduction_multi(
         "pearson_r_per_covariate":  r_per_covariate,
         "r_squared_approx":         round(reduction_pct / 100, 4),
     }
+
+
+def adjusted_effect(df,metric_col,covariate_cols,variant_col="variant",alpha=.05):
+    """Treatment regression with centered pre-treatment covariates, HC3 variance.
+
+    Returns an inferential estimator rather than testing fitted residuals as if
+    their regression parameters were known. Random allocation is assumed.
+    """
+    import statsmodels.api as sm
+    from scipy.stats import norm
+    x=df[covariate_cols].astype(float)
+    design=x-x.mean()
+    design=design.copy();design["treatment"]=(df[variant_col]=="treatment").astype(float)
+    model=sm.OLS(df[metric_col].astype(float),sm.add_constant(design)).fit(cov_type="HC3")
+    estimate=float(model.params["treatment"]);se=float(model.bse["treatment"])
+    width=norm.ppf(1-alpha/2)*se
+    return {"estimate":estimate,"se":se,"ci_lower":estimate-width,"ci_upper":estimate+width,"p_value":float(2*norm.sf(abs(estimate/se))),"method":"OLS treatment coefficient with HC3 variance"}

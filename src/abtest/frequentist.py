@@ -100,56 +100,12 @@ def sequential_test(
     alpha: float = 0.05,
     spending_fn: str = "obrien_fleming",
 ) -> pd.DataFrame:
+    """Early stopping is disabled until a full sequential design is calibrated.
+
+    Fixed-horizon tests remain supported. Retrospective p-value prefixes are
+    not a release procedure and must not be used for stopping decisions.
     """
-    Illustrate retrospective interim looks, without validated error control.
-
-    Splits already-collected data into `max_looks` equal batches to emulate interim
-    analyses. Cumulative spending is compared directly with pointwise p-values,
-    which does not calibrate joint stopping boundaries. The Pocock-labelled
-    branch is linear spending, not a calibrated Pocock test. Do not use this
-    function for live stopping decisions. Floor-sized batches and rounded
-    p-values are retained for compatibility with the saved illustration.
-    """
-    n = min(len(control), len(treatment))
-    # Reset index so .iloc slicing works correctly on both series
-    control   = control.reset_index(drop=True)
-    treatment = treatment.reset_index(drop=True)
-
-    batch_size = n // max_looks
-    records = []
-    stopped = False
-
-    for look in range(1, max_looks + 1):
-        k = look * batch_size
-        c = control.iloc[:k]
-        t = treatment.iloc[:k]
-        result = two_proportion_ztest(c, t, alpha=alpha)
-
-        if spending_fn == "obrien_fleming":
-            info_frac = look / max_looks
-            alpha_boundary = 2 * (
-                1 - stats.norm.cdf(stats.norm.ppf(1 - alpha / 2) / np.sqrt(info_frac))
-            )
-        else:  # Pocock
-            alpha_boundary = alpha * look / max_looks
-
-        p_val = result["p_value"]
-        if not stopped and p_val < alpha_boundary:
-            stopped = True
-
-        records.append({
-            "look":              look,
-            "n_cumulative":      k * 2,
-            "p_value":           p_val,
-            "alpha_boundary":    round(alpha_boundary, 6),
-            "significant":       stopped,
-            "relative_lift_pct": result["relative_lift_pct"],
-        })
-
-        if stopped:
-            break
-
-    return pd.DataFrame(records)
+    raise NotImplementedError("Early stopping is disabled; use the fixed-horizon reference test")
 
 
 def segment_analysis(
@@ -186,9 +142,15 @@ def segment_analysis(
             r = welch_ttest(ctrl, trt, alpha=alpha, metric_name=metric_col)
 
         p_c = r["control_mean"]
-        # Rescaled absolute interval; omits uncertainty in the control denominator.
-        rel_lo = r["ci_lower"] / p_c * 100 if p_c > 0 else 0.0
-        rel_hi = r["ci_upper"] / p_c * 100 if p_c > 0 else 0.0
+        # Delta-method ratio interval includes uncertainty in both independent arms.
+        mean_c,mean_t=float(ctrl.mean()),float(trt.mean())
+        if mean_c > 0:
+            ratio=mean_t/mean_c
+            var=trt.var(ddof=1)/(len(trt)*mean_c**2)+mean_t**2*ctrl.var(ddof=1)/(len(ctrl)*mean_c**4)
+            width=stats.norm.ppf(1-alpha/2)*np.sqrt(var)*100
+            rel_lo=(ratio-1)*100-width;rel_hi=(ratio-1)*100+width
+        else:
+            rel_lo=rel_hi=float("nan")
 
         records.append({
             "segment":        seg_val,
@@ -203,4 +165,32 @@ def segment_analysis(
             "significant":    r["significant"],
         })
 
-    return pd.DataFrame(records)
+    result=pd.DataFrame(records)
+    from statsmodels.stats.multitest import multipletests
+    result["p_adjusted"]=multipletests(result.p_value,method="holm")[1]
+    result["significant"]=result.p_adjusted < alpha
+    return result
+
+
+def segment_interaction(df, segment_col, metric_col, variant_col="variant"):
+    """HC3 Wald test of all treatment-by-segment terms, on the additive scale."""
+    import statsmodels.api as sm
+    treatment=(df[variant_col]=="treatment").astype(float).rename("treatment")
+    segments=pd.get_dummies(df[segment_col],drop_first=True,dtype=float)
+    design=pd.concat([treatment,segments],axis=1)
+    names=[]
+    for col in segments:
+        name=f"treatment:{col}";design[name]=treatment*segments[col];names.append(name)
+    model=sm.OLS(df[metric_col].astype(float),sm.add_constant(design)).fit(cov_type="HC3")
+    restriction=np.zeros((len(names),len(model.params)))
+    for i,name in enumerate(names):restriction[i,model.params.index.get_loc(name)]=1
+    test=model.wald_test(restriction,scalar=True)
+    return {"p_value":float(test.pvalue),"scale":"additive","method":"HC3 joint interaction Wald"}
+
+
+def release_decision(primary,guardrail,harm_margin=.02):
+    """Require primary benefit and upper guardrail bound below predefined harm."""
+    return {"primary_improved":bool(primary["ci_lower"]>0),
+      "guardrail_acceptable":bool(guardrail["ci_upper"]<harm_margin),
+      "harm_margin":harm_margin,
+      "release":bool(primary["ci_lower"]>0 and guardrail["ci_upper"]<harm_margin)}

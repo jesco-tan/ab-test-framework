@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "inputs": {
+    "src/abtest/bayesian.py": "c104e3e129b91f353758f16208ead51dda44e066e1e98073d01f65b3a6882cd8",
+    "src/abtest/cuped.py": "c6333c66b49f5d0c29aa6483ac8ea19b6b871f08db704dcf37465b4936af75b0",
+    "src/abtest/frequentist.py": "5f0d67fc0bc61b06beda89932d1a49472e79316b07ed5de95ffa0e7aa6087e06",
+    "src/abtest/power.py": "95a57254c1e8de16ae824be5d3d416283fb48f1ab0b66cc6b65b3d49d7f35754",
+    "src/abtest/simulate.py": "9f59e6b7d19430c3ff2b0bb6239b4e498c8b3b09961510f00a2f4c280b074732",
+    "src/abtest/visualise.py": "1e43ab3bbc3716965dcfa5986120a7262fd023bea8d98a34ce3744d2fec3f757",
+    "src/abtest/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scripts/validate_inference.py": "5703e1bc7718b5dae7f76d6bc054959e3d0015a775859d8a5eb3b6a9c580b073"
+  },
+  "seed": 20261103,
+  "packages": {
+    "colorama": "0.4.6",
+    "contourpy": "1.4.0",
+    "cycler": "0.12.1",
+    "fonttools": "4.68.0",
+    "formulaic": "1.2.2",
+    "iniconfig": "2.3.1",
+    "interface_meta": "2.0.1",
+    "kiwisolver": "1.5.1",
+    "matplotlib": "3.11.2",
+    "narwhals": "2.28.0",
+    "numpy": "2.5.4",
+    "packaging": "26.3",
+    "pandas": "3.1.0",
+    "patsy": "1.0.3",
+    "pillow": "13.0.0",
+    "pip": "26.1.1",
+    "pluggy": "1.7.0",
+    "Pygments": "2.21.0",
+    "pyparsing": "3.3.3",
+    "pytest": "9.2.0",
+    "python-dateutil": "4.0.0",
+    "PyYAML": "6.0.3",
+    "scipy": "1.18.1",
+    "seaborn": "0.13.2",
+    "statsmodels": "0.15.0",
+    "typing_extensions": "4.16.0",
+    "tzdata": "2026.6",
+    "wrapt": "2.6.0.dev1"
+  },
+  "outputs": {
+    "inference_validation.json": "ee4bf1c305038ac1878e35eb30abccaf3743181f22e6e4a0959096edbd99d116",
+    "run_summary.json": "907b2c21ebbc0c875cc63d65d6ff05c8ff130f85ed96cc0c9ba6659eaedef1ab"
+  },
+  "tolerance": "Seeded simulation frequencies exact with pinned stack; numerical coefficients absolute tolerance 1e-6."
+}

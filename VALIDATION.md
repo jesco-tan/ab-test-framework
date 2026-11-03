@@ -1,9 +1,9 @@
-# Verification, 3 November 2026
+# Validation
 
-15 Python tests passed, including default activation counts, effective baseline inputs and variance-ratio reporting. The corrected synthetic notebook was executed in a workspace virtual environment and its figures regenerated. It reproduced 395 and 482 activations across 2,115 records per arm. CUPED equivalent-N gain is 4.54%. Guardrail absolute_change_pp is correctly multiplied by 100 in schema version 2. Runtime versions are in outputs/execution-environment.json.
+I checked the fixed-horizon reference tests, covariate-adjusted estimator, subgroup procedures and release criteria. All 19 Python tests and the predefined simulation calibration passed.
 
-## Interpretation limits
+I simulated 10,000 complete binary experiments per effect and 2,000 covariate-adjustment experiments per scenario. The saved results report rejection rates, bias, interval coverage and Monte Carlo uncertainty against tolerances specified before simulation. Early stopping is disabled.
 
-The current results are synthetic demonstrations. Passing software checks does not validate real-world predictive performance, causality or business benefit.
+## Scope
 
-The interim-look function remains an explicitly illustrative, unvalidated stopping method. Subgroup comparisons are exploratory, and adjusted Welch inference after pooled CUPED remains provisional.
+Calibration supports the documented fixed-horizon settings and additive regression scenarios. It does not validate arbitrary outcome distributions, confounded observational comparisons or a sequential stopping procedure. The harm margin is an illustrative business assumption. See [REPORT.md](REPORT.md), `outputs/inference_validation.json` and `outputs/inference_manifest.json` for the designs and reproduction.

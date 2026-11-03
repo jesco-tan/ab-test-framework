@@ -51,11 +51,11 @@ def mde_curve(
 
     records = []
     for n in ns:
-        # Invert the formula: given n, what absolute effect is detectable?
-        p = baseline_cvr
-        se = np.sqrt(2 * p * (1 - p) / n)
-        delta = (z_alpha + z_beta) * se
-        mde_rel = delta / p
+        from scipy.optimize import brentq
+        def target(lift):
+            return required_sample_size(baseline_cvr,lift,alpha,power)-n
+        upper=(1/baseline_cvr-1)*.999
+        mde_rel=brentq(target,1e-5,upper) if target(upper)<0 else float("nan")
         records.append({"n_per_group": int(n), "mde_relative": round(mde_rel, 4)})
 
     return pd.DataFrame(records)
@@ -76,9 +76,11 @@ def power_by_sample_size(
 
     records = []
     for n in ns:
-        se = np.sqrt(p1 * (1 - p1) / n + p2 * (1 - p2) / n)
-        z = (p2 - p1) / se - z_alpha
-        pwr = stats.norm.cdf(z)
+        pbar=(p1+p2)/2
+        null_se=np.sqrt(2*pbar*(1-pbar)/n)
+        alt_se=np.sqrt((p1*(1-p1)+p2*(1-p2))/n)
+        delta=p2-p1
+        pwr=stats.norm.sf((z_alpha*null_se-delta)/alt_se)+stats.norm.cdf((-z_alpha*null_se-delta)/alt_se)
         records.append({"n_per_group": int(n), "power": round(float(pwr), 4)})
 
     return pd.DataFrame(records)
